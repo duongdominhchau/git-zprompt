@@ -183,7 +183,8 @@ fn prepare_staging_stat(repo: &Repository) -> StagingStat {
             // TODO: But what if the conflict is resolved and added to staging area?
             return;
         }
-        println!("{:?} {:?}", status_entry.path(), status);
+        dbg!(status_entry.path());
+        dbg!(status);
         if status.contains(Status::INDEX_MODIFIED)
             || status.contains(Status::INDEX_NEW)
             || status.contains(Status::INDEX_DELETED)

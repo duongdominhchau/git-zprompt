@@ -9,7 +9,7 @@ edition = "2021"
 debug = true
 
 [dependencies]
-git2 = "*"
+git2 = { version = "*", default-features = false }
 log = "*"
 env_logger = "*"
 colored = "*"
