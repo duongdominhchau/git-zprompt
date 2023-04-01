@@ -1,34 +1,12 @@
 #![feature(iter_intersperse)]
 
 use std::{
-    env::{args, current_dir},
+    env::current_dir,
     io::{stdout, Write},
 };
 
 use colored::Colorize;
-use git2::{BranchType, Oid, Repository, RepositoryState, Status, StatusOptions, StatusShow};
-
-#[derive(Debug, Clone)]
-pub struct RepoBranch {
-    pub name: String,
-    pub branch_type: Option<BranchType>,
-    pub remote: Option<String>,
-}
-
-#[derive(Debug, Clone)]
-pub struct RepoStatus {
-    pub state: RepositoryState,
-    pub branches: Vec<RepoBranch>,
-}
-
-impl RepoStatus {
-    pub fn new() -> Self {
-        Self {
-            state: RepositoryState::Clean,
-            branches: Vec::new(),
-        }
-    }
-}
+use git2::{BranchType, Oid, Repository, Status, StatusOptions, StatusShow};
 
 #[derive(Debug)]
 pub enum HeadInfo {
@@ -67,22 +45,8 @@ pub struct PromptData {
     // TODO: Repo status: rebasing, cherry-picking, bisect, etc.
 }
 
-fn quit_with_error() -> ! {
-    std::process::exit(1);
-}
-
 fn find_repo_using_current_dir() -> Repository {
-    let pwd = current_dir().unwrap_or_else(|err| {
-        log::error!(
-            "Current directory does not exist or insufficient permissions to access it\n{:?}",
-            err
-        );
-        quit_with_error();
-    });
-    Repository::discover(&pwd).unwrap_or_else(|err| {
-        log::error!("No repo found\n{:?}", err);
-        quit_with_error();
-    })
+    Repository::discover(&current_dir().unwrap()).unwrap()
 }
 
 fn find_tag(repo: &Repository, head: Oid) -> Option<String> {
@@ -183,8 +147,8 @@ fn prepare_staging_stat(repo: &Repository) -> StagingStat {
             // TODO: But what if the conflict is resolved and added to staging area?
             return;
         }
-        dbg!(status_entry.path());
-        dbg!(status);
+        // dbg!(status_entry.path());
+        // dbg!(status);
         if status.contains(Status::INDEX_MODIFIED)
             || status.contains(Status::INDEX_NEW)
             || status.contains(Status::INDEX_DELETED)
@@ -314,13 +278,6 @@ fn print_prompt(data: &PromptData) {
 }
 
 fn main() {
-    if let Some(arg) = args().skip(1).next() {
-        if arg.eq("--verbose") {
-            env_logger::builder()
-                .filter_level(log::LevelFilter::Info)
-                .init();
-        }
-    }
     let mut repo = find_repo_using_current_dir();
     let prompt_data = prepare_prompt_data(&mut repo);
     print_prompt(&prompt_data);
