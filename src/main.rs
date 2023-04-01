@@ -5,7 +5,7 @@ use std::{
     io::{stdout, Write},
 };
 
-use colored::Colorize;
+use colored::{control::set_override, Colorize};
 use git2::{BranchType, Oid, Repository, Status, StatusOptions, StatusShow};
 
 #[derive(Debug)]
@@ -46,7 +46,7 @@ pub struct PromptData {
 }
 
 fn find_repo_using_current_dir() -> Repository {
-    Repository::discover(&current_dir().unwrap()).unwrap()
+    Repository::discover(&current_dir().unwrap()).unwrap_or_else(|_| std::process::exit(1))
 }
 
 fn find_tag(repo: &Repository, head: Oid) -> Option<String> {
@@ -278,6 +278,8 @@ fn print_prompt(data: &PromptData) {
 }
 
 fn main() {
+    // Need to force color as git-zprompt is run non-interactively
+    set_override(true);
     let mut repo = find_repo_using_current_dir();
     let prompt_data = prepare_prompt_data(&mut repo);
     print_prompt(&prompt_data);
