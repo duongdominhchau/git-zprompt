@@ -5,8 +5,11 @@ use std::{
     io::{stdout, Write},
 };
 
-use colored::{control::set_override, Colorize};
 use git2::{BranchType, Oid, Repository, Status, StatusOptions, StatusShow};
+
+use crate::color::{bold_str, colored_str};
+
+mod color;
 
 #[derive(Debug)]
 pub enum HeadInfo {
@@ -201,21 +204,26 @@ fn print_prompt(data: &PromptData) {
     {
         let stat_str = [
             if data.staging_stat.staged > 0 {
-                Some(format!("🗸{}", data.staging_stat.staged).green().to_string())
+                Some(colored_str(
+                    &format!("🗸{}", data.staging_stat.staged),
+                    "green",
+                ))
             } else {
                 None
             },
             if data.staging_stat.modified > 0 {
-                Some(
-                    format!("•{}", data.staging_stat.modified)
-                        .yellow()
-                        .to_string(),
-                )
+                Some(colored_str(
+                    &format!("•{}", data.staging_stat.modified),
+                    "yellow",
+                ))
             } else {
                 None
             },
             if data.staging_stat.conflict > 0 {
-                Some(format!("✘{}", data.staging_stat.conflict).red().to_string())
+                Some(colored_str(
+                    &format!("✘{}", data.staging_stat.conflict),
+                    "red",
+                ))
             } else {
                 None
             },
@@ -235,14 +243,12 @@ fn print_prompt(data: &PromptData) {
             write!(
                 &mut stdout,
                 "{}{} -> {}",
-                name.green().bold(),
+                bold_str(&colored_str(name, "green")),
                 staging_info,
-                upstream
-                    .as_ref()
-                    .map(|s| s.as_str())
-                    .unwrap_or("∅")
-                    .red()
-                    .bold()
+                bold_str(&colored_str(
+                    upstream.as_ref().map(|s| s.as_str()).unwrap_or("∅"),
+                    "red"
+                ))
             )
             .unwrap();
             if data.commit_stat.ahead > 0 || data.commit_stat.behind > 0 {
@@ -260,16 +266,28 @@ fn print_prompt(data: &PromptData) {
             }
         }
         HeadInfo::RemoteBranch { name } => {
-            write!(&mut stdout, "{}{}", name.red().bold(), staging_info).unwrap();
+            write!(
+                &mut stdout,
+                "{}{}",
+                bold_str(&colored_str(name, "red")),
+                staging_info
+            )
+            .unwrap();
         }
         HeadInfo::Tag { name } => {
-            write!(&mut stdout, "🔖{}{}", name.blue().bold(), staging_info).unwrap();
+            write!(
+                &mut stdout,
+                "🔖{}{}",
+                bold_str(&colored_str(name, "blue")),
+                staging_info
+            )
+            .unwrap();
         }
         HeadInfo::Commit { hash } => {
             write!(
                 &mut stdout,
                 "Commit {}{}",
-                &hash[0..=12].blue().bold(),
+                bold_str(&colored_str(&hash[0..=12], "blue")),
                 staging_info
             )
             .unwrap();
@@ -278,8 +296,6 @@ fn print_prompt(data: &PromptData) {
 }
 
 fn main() {
-    // Need to force color as git-zprompt is run non-interactively
-    set_override(true);
     let mut repo = find_repo_using_current_dir();
     let prompt_data = prepare_prompt_data(&mut repo);
     print_prompt(&prompt_data);

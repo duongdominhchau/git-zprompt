@@ -13,4 +13,3 @@ panic = "abort"
 
 [dependencies]
 git2 = { version = "*", default-features = false }
-colored = "*"
