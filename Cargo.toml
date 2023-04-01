@@ -12,3 +12,4 @@ debug = true
 git2 = "*"
 log = "*"
 env_logger = "*"
+colored = "*"
