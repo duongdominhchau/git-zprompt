@@ -13,6 +13,8 @@ mod color;
 
 #[derive(Debug)]
 pub enum HeadInfo {
+    /// This exists in empty repo, the branch name is there, but there is no commit
+    EmptyBranch { name: String },
     /// Checking out local branch, this branch can optionally track a remote branch
     Branch {
         name: String,
@@ -26,13 +28,13 @@ pub enum HeadInfo {
     Commit { hash: String },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CommitStat {
     pub ahead: usize,
     pub behind: usize,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct StagingStat {
     pub modified: usize,
     pub staged: usize,
@@ -48,8 +50,12 @@ pub struct PromptData {
     // TODO: Repo status: rebasing, cherry-picking, bisect, etc.
 }
 
+fn quit() -> ! {
+    std::process::exit(1);
+}
+
 fn find_repo_using_current_dir() -> Repository {
-    Repository::discover(&current_dir().unwrap()).unwrap_or_else(|_| std::process::exit(1))
+    Repository::discover(&current_dir().unwrap()).unwrap_or_else(|_| quit())
 }
 
 fn find_tag(repo: &Repository, head: Oid) -> Option<String> {
@@ -172,7 +178,27 @@ fn prepare_staging_stat(repo: &Repository) -> StagingStat {
     }
 }
 
+fn get_current_branch_in_empty_repo(repo: &Repository) -> String {
+    let mut path = repo.path().to_path_buf();
+    path.push("HEAD");
+    std::fs::read_to_string(path)
+        .unwrap()
+        .trim_start_matches("ref: refs/heads/")
+        .trim_end()
+        .to_string()
+}
+
 fn prepare_prompt_data(repo: &mut Repository) -> PromptData {
+    if repo.is_empty().unwrap() {
+        return PromptData {
+            head: HeadInfo::EmptyBranch {
+                name: format!("{}", get_current_branch_in_empty_repo(repo)),
+            },
+            commit_stat: CommitStat::default(),
+            staging_stat: StagingStat::default(),
+            stash: 0,
+        };
+    }
     let head = prepare_head_info(repo);
     let commit_stat = prepare_commit_stat(repo, &head);
     let staging_stat = prepare_staging_stat(repo);
@@ -289,6 +315,15 @@ fn print_prompt(data: &PromptData) {
                 "Commit {}{}",
                 bold_str(&colored_str(&hash[0..=12], "blue")),
                 staging_info
+            )
+            .unwrap();
+        }
+        HeadInfo::EmptyBranch { name } => {
+            write!(
+                &mut stdout,
+                "{} {}",
+                bold_str(&colored_str(&name, "green")),
+                colored_str("(empty repo)", "red")
             )
             .unwrap();
         }
