@@ -125,7 +125,9 @@ fn prepare_commit_stat(repo: &Repository, head: &HeadInfo) -> CommitStat {
             }
             None => {
                 // No branch to compare, just return total number of commits
-                ahead = local_commit.parent_count() + 1;
+                let mut walk = repo.revwalk().unwrap();
+                walk.push_head().unwrap();
+                ahead = walk.count();
             }
         }
     }
